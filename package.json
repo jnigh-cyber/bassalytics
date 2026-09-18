@@ -40,7 +40,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "vitest run",
-    "test": "vitest"
+    "test:watch": "vitest"
   },
   "private": true
 }
