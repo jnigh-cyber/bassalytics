@@ -1,9 +1,10 @@
 import { Text, View, StyleSheet } from "react-native";
 
 export default function Index() {
+
   return (
     <View style={styles.container}>
-      <Text></Text>
+      <Text>Testing text here.</Text>
     </View>
   );
 }
