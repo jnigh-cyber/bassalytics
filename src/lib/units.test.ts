@@ -7,3 +7,9 @@ describe('Celsius to Fahrenheit function', () => {
         expect(cToF(100)).toBe(212);
     })
 });
+
+describe('Celsius to Fahrenheit function', () => {
+    it('Converts celsius to fahrenheit', () => {
+        expect(cToF(100)).toBe(212);
+    })
+});
