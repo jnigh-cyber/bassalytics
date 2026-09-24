@@ -139,3 +139,40 @@ Lessons: the Postgres image initializes credentials only on first boot against a
 Decision: the server runs `node --watch src/index.ts` using Node 24's built-in type stripping, with `tsc --noEmit` as a separate `typecheck` script. `server/package.json` sets `"type": "module"`, and the tsconfig enables `strict`, `verbatimModuleSyntax`, and `erasableSyntaxOnly`.
 Alternatives: compiling to `dist/` with `tsc` (the car loan calculator's approach); `tsx` or `ts-node` as a runner.
 Why: fast save-and-restart loop, no build artifacts, and stack traces that match source line numbers. Type stripping does not type-check, so the separate gate is required. Type-only imports must use `import type`, and non-erasable syntax like `enum` is avoided.
+
+## 2026-09-24 — Own API response shape for current weather
+
+Decision: `GET /api/weather` returns `{ current: { tempC, weatherCode } }`, the project's own contract rather than Open-Meteo's raw payload.
+Alternatives: pass Open-Meteo's JSON through unchanged; a flat `{ temperatureC, weatherCode }`.
+Why: the app depends only on this API, so changing or combining data providers (Open-Meteo, USGS) does not ripple into the app. Nesting under `current` lets the five-day forecast arrive as a sibling `daily` field later, which is a non-breaking addition rather than a restructure. Field names are camelCase, and the unit is part of the name so the contract is self-documenting.
+
+## 2026-09-24 — Weather code labels stay in the app
+
+Decision: the API sends the raw WMO code; the app formats it with `describeWeatherCodes`.
+Alternatives: the server sends the text label.
+Why: wording is presentation. Localization or icons later become app changes, not API changes. The server sends facts; the app decides how to show them.
+
+## 2026-09-24 — Server-side Open-Meteo call: constants in code, one error path
+
+Decision: the Open-Meteo base URL is a constant in the server code, with query parameters built by `URLSearchParams`. A non-OK upstream status throws, and a single `catch` responds with `502` and a generic message while logging the real cause.
+Alternatives: the full URL in `.env`; responding separately for bad status and network failure.
+Why: env vars are for values that are secret or that differ between environments, and this URL is neither. `.env` files do not interpolate `${...}`. `fetch` only throws on network failure, so bad statuses must be checked explicitly. Routing both failures through one `catch` means one error response to maintain.
+
+## 2026-09-24 — App API address via EXPO_PUBLIC_API_URL
+
+Decision: the app reads its API base URL from `EXPO_PUBLIC_API_URL` in the root `.env`, checked inside the queryFn with a clear error if missing.
+Alternatives: hardcoding the address in the hook.
+Why: the laptop's IP changes per network, and production will use a different URL, so the address is configuration. `EXPO_PUBLIC_` variables are inlined into the bundle at build time, so they are public and never used for secrets. Expo only substitutes them when written literally as `process.env.EXPO_PUBLIC_API_URL`; dynamic lookups like `process.env[key]` return undefined on device. Checking inside the queryFn surfaces a missing value as a query error instead of crashing the app at load.
+
+## 2026-09-24 — Weather queryKey without coordinates, for now
+
+Decision: the key is `['currentWeather']` while the server holds the Lake Higgins coordinates.
+Alternatives: keep coordinates in the key; send coordinates from the app as query parameters.
+Why: a queryKey should describe the request's inputs. The app no longer sends coordinates, so a key containing them would be misleading. Location returns to the key when it becomes a real input (saved location, Slice 4). Sending coordinates now would add server-side query validation and widen the issue.
+
+## 2026-09-24 — Dev networking for a physical phone
+
+Decision: the phone reaches Metro (8081) and the API (3000) over the local network, using the laptop's current IPv4 address. A Windows Firewall inbound rule allows TCP 8081 and 3000 on Private networks only. On networks with client isolation, the laptop joins the iPhone's Personal Hotspot.
+Alternatives: Expo tunnel mode; Expo web for testing.
+Why: Windows had no inbound rule for Node, so connections were blocked by default. A port-based rule works regardless of where `node.exe` is installed, and limiting it to Private keeps the ports closed on public and work networks. The work network isolates devices from each other, which no laptop setting can bypass; the hotspot creates a small private network. Tunnel mode only exposes Metro, not the API, and it crashed on an ngrok call.
+Lessons: a timeout means traffic is being dropped (firewall or isolation), while a 404 means a server answered but didn't know the path. Test reachability from the phone's browser first, since it separates network problems from Expo Go problems. A missing `$` in a template string produced a literal URL and a 404. "Cannot find native module" errors call for checking the Metro folder, running
