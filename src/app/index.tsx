@@ -1,30 +1,37 @@
-import { Text, View, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
+import {
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import { useCurrentWeather } from '../hooks/useCurrentWeather';
 import { describeWeatherCodes } from '../lib/describeweathercodes';
 import { cToF } from '../lib/units';
 import { useUnitStore } from '../stores/useUnitStore';
 
- 
 export default function Index() {
-
   const { data, isPending, error } = useCurrentWeather();
   const unit = useUnitStore((u) => u.unit);
   const toggleUnit = useUnitStore((t) => t.toggleUnit);
 
-  if(isPending) return <ActivityIndicator />
+  if (isPending) return <ActivityIndicator />;
 
-  if(error) return <Text>Error: {error.message}</Text>
+  if (error) return <Text>Error: {error.message}</Text>;
 
-  if(!data) return <Text>No data.</Text>
+  if (!data) return <Text>No data.</Text>;
 
-  const temperature = unit === 'F' ? cToF(data.current.temperature_2m) : data.current.temperature_2m;
+  const temperature =
+    unit === 'F' ? cToF(data.current.tempC) : data.current.tempC;
 
   return (
     <View style={styles.container}>
       <Pressable onPress={toggleUnit}>
-        <Text>{Math.round(temperature)}°{unit}</Text>
+        <Text>
+          {Math.round(temperature)}°{unit}
+        </Text>
       </Pressable>
-      <Text>{describeWeatherCodes(data.current.weather_code)}</Text>
+      <Text>{describeWeatherCodes(data.current.weatherCode)}</Text>
     </View>
   );
 }
