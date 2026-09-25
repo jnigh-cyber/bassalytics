@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
 import express from 'express';
+import { PORT } from './config.ts';
 
 const app = express();
-const PORT = process.env.PORT ?? 3000;
 const omURL = 'https://api.open-meteo.com/v1/forecast';
 const params = new URLSearchParams({
   latitude: '36.1593',
